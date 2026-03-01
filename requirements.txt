@@ -1,0 +1,10 @@
+transformers>=4.50.0
+acceleate
+torch
+Pillow
+requests
+huggingface_hub
+fastapi
+uvicorn
+pydantic
+python-multipart

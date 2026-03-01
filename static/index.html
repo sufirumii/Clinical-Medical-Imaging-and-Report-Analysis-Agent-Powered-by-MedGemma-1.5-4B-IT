@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MedGemma Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#040d14;--surface:#0a1929;--border:#0e2a42;
+    --accent:#00e5ff;--accent2:#ff4081;--text:#e8f4f8;--muted:#4a7a95;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;overflow-x:hidden}
+
+  /* animated grid bg */
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:linear-gradient(var(--border) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:40px 40px;opacity:.4;pointer-events:none;z-index:0;
+  }
+
+  header{
+    position:relative;z-index:1;
+    padding:2.5rem 3rem 1.5rem;
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:1.2rem;
+  }
+  .logo{
+    width:44px;height:44px;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;font-size:1.4rem;
+    box-shadow:0 0 24px #00e5ff44;
+  }
+  h1{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
+  h1 span{color:var(--accent)}
+  .badge{
+    margin-left:auto;font-size:.65rem;padding:.3rem .7rem;
+    border:1px solid var(--accent);color:var(--accent);border-radius:99px;
+    letter-spacing:.12em;text-transform:uppercase;
+  }
+
+  main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding:2rem 3rem;max-width:1400px;margin:0 auto}
+
+  .panel{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:16px;padding:1.5rem;
+    display:flex;flex-direction:column;gap:1rem;
+  }
+  .panel-title{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;
+    letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+
+  textarea{
+    width:100%;min-height:120px;resize:vertical;
+    background:#061522;border:1px solid var(--border);border-radius:10px;
+    color:var(--text);font-family:'DM Mono',monospace;font-size:.85rem;
+    padding:.9rem 1rem;outline:none;transition:border-color .2s;
+  }
+  textarea:focus{border-color:var(--accent)}
+
+  .drop-zone{
+    border:2px dashed var(--border);border-radius:12px;
+    padding:2rem;text-align:center;cursor:pointer;
+    transition:all .2s;color:var(--muted);font-size:.8rem;
+  }
+  .drop-zone:hover,.drop-zone.drag{border-color:var(--accent);color:var(--accent);background:#00e5ff08}
+  .drop-zone img{max-height:160px;border-radius:8px;margin-top:.8rem;display:block;margin-inline:auto}
+
+  .presets{display:flex;flex-wrap:wrap;gap:.5rem}
+  .preset{
+    font-size:.72rem;padding:.35rem .75rem;border-radius:99px;cursor:pointer;
+    border:1px solid var(--border);color:var(--muted);background:transparent;
+    transition:all .2s;font-family:'DM Mono',monospace;
+  }
+  .preset:hover{border-color:var(--accent);color:var(--accent)}
+
+  .run-btn{
+    padding:.85rem 2rem;border-radius:10px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),#0099bb);
+    color:#040d14;font-family:'Syne',sans-serif;font-weight:700;
+    font-size:.95rem;letter-spacing:.05em;transition:all .2s;
+    box-shadow:0 0 20px #00e5ff33;
+  }
+  .run-btn:hover{transform:translateY(-1px);box-shadow:0 0 32px #00e5ff55}
+  .run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+  .response-box{
+    flex:1;background:#061522;border:1px solid var(--border);
+    border-radius:10px;padding:1.1rem;font-size:.85rem;
+    line-height:1.7;color:var(--text);white-space:pre-wrap;
+    min-height:280px;overflow-y:auto;
+  }
+  .response-box.empty{color:var(--muted);font-style:italic}
+
+  /* typing cursor */
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  .cursor{display:inline-block;width:8px;height:1em;background:var(--accent);
+    vertical-align:text-bottom;animation:blink 1s infinite}
+
+  .status-bar{
+    position:relative;z-index:1;
+    border-top:1px solid var(--border);padding:.75rem 3rem;
+    display:flex;align-items:center;gap:.8rem;font-size:.72rem;color:var(--muted);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:#2d4a5a}
+  .dot.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .loading .run-btn{animation:pulse 1s infinite}
+
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Med<span>Gemma</span> Agent</h1>
+    <div style="font-size:.7rem;color:var(--muted);margin-top:.15rem">1.5 · 4B · Multimodal Medical AI</div>
+  </div>
+  <div class="badge" id="statusBadge">Connecting…</div>
+</header>
+
+<main>
+  <!-- INPUT PANEL -->
+  <div class="panel">
+    <div class="panel-title">Input</div>
+
+    <div>
+      <div class="panel-title" style="margin-bottom:.5rem">Quick Prompts</div>
+      <div class="presets">
+        <button class="preset" onclick="setPrompt(this)">Describe this X-ray</button>
+        <button class="preset" onclick="setPrompt(this)">List key findings</button>
+        <button class="preset" onclick="setPrompt(this)">Suggest differential diagnoses</button>
+        <button class="preset" onclick="setPrompt(this)">Summarize this lab report</button>
+        <button class="preset" onclick="setPrompt(this)">Identify anatomical structures</button>
+        <button class="preset" onclick="setPrompt(this)">Assess severity and urgency</button>
+      </div>
+    </div>
+
+    <textarea id="prompt" placeholder="Enter your medical question or instruction…"></textarea>
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+         ondragover="ev(event)" ondrop="drop(event)">
+      <div>📁 Drop medical image here or click to upload</div>
+      <div style="margin-top:.3rem;font-size:.7rem">CXR · CT · MRI · Derm · Histo · Fundus</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewFile(this)"/>
+
+    <button class="run-btn" id="runBtn" onclick="analyze()">Run Analysis</button>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="panel">
+    <div class="panel-title">Analysis Output</div>
+    <div class="response-box empty" id="output">Awaiting input…</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.7rem;color:var(--muted)" id="elapsed"></span>
+      <button class="preset" onclick="copyOutput()" style="border-color:var(--muted)">Copy</button>
+    </div>
+  </div>
+</main>
+
+<div class="status-bar">
+  <div class="dot" id="dot"></div>
+  <span id="statusText">Checking server…</span>
+</div>
+
+<script>
+let selectedFile = null;
+
+async function checkHealth(){
+  try{
+    const r = await fetch("/health");
+    if(r.ok){
+      document.getElementById("dot").className="dot live";
+      document.getElementById("statusText").textContent="Model loaded · Ready";
+      document.getElementById("statusBadge").textContent="Live";
+      document.getElementById("statusBadge").style.borderColor="var(--accent)";
+    }
+  }catch{
+    document.getElementById("statusText").textContent="Server offline";
+  }
+}
+checkHealth(); setInterval(checkHealth, 15000);
+
+function setPrompt(el){ document.getElementById("prompt").value = el.textContent; }
+
+function ev(e){ e.preventDefault(); document.getElementById("dropZone").classList.add("drag"); }
+
+function drop(e){
+  e.preventDefault();
+  document.getElementById("dropZone").classList.remove("drag");
+  const f = e.dataTransfer.files[0];
+  if(f){ selectedFile=f; showPreview(f); }
+}
+
+function previewFile(input){
+  if(input.files[0]){ selectedFile=input.files[0]; showPreview(selectedFile); }
+}
+
+function showPreview(f){
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById("dropZone").innerHTML =
+      `<img src="${e.target.result}"/><div style="margin-top:.5rem;font-size:.7rem">${f.name}</div>`;
+  };
+  reader.readAsDataURL(f);
+}
+
+async function analyze(){
+  const prompt = document.getElementById("prompt").value.trim();
+  if(!prompt){ alert("Enter a prompt first"); return; }
+
+  const btn = document.getElementById("runBtn");
+  const out  = document.getElementById("output");
+  btn.disabled=true; out.className="response-box";
+  out.innerHTML='Analyzing<span class="cursor"></span>';
+  const t0 = Date.now();
+
+  const fd = new FormData();
+  fd.append("prompt", prompt);
+  if(selectedFile) fd.append("file", selectedFile);
+
+  try{
+    const r = await fetch("/analyze", {method:"POST", body:fd});
+    const d = await r.json();
+    out.textContent = d.response || d.error || "No response";
+    document.getElementById("elapsed").textContent =
+      `⏱ ${((Date.now()-t0)/1000).toFixed(1)}s`;
+  }catch(e){
+    out.textContent="Error: "+e.message; out.style.color="var(--accent2)";
+  }finally{ btn.disabled=false; }
+}
+
+function copyOutput(){
+  navigator.clipboard.writeText(document.getElementById("output").textContent);
+}
+</script>
+</body>
+</html>
