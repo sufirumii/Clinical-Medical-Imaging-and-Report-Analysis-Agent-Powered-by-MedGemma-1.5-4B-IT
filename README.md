@@ -59,7 +59,7 @@ The system is intentionally decoupled:
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/clinical-medgemma-agent.git
+git clone https://github.com/sufirumii/Clinical-Medical-Imaging-and-Report-Analysis-Agent-Powered-by-MedGemma-1.5-4B-IT.git
 cd clinical-medgemma-agent
 pip install transformers>=4.50.0 accelerate torch Pillow requests huggingface_hub fastapi uvicorn pydantic python-multipart gradio
 ```
